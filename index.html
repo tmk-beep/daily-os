@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tomoko — Daily OS</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --surface-2: #f0ede6;
+  --border: rgba(0,0,0,0.10);
+  --border-md: rgba(0,0,0,0.18);
+  --border-strong: rgba(0,0,0,0.28);
+  --text: #1a1917;
+  --text-2: #5c5b57;
+  --text-3: #9a9893;
+  --accent-bg: #e8f0fb;
+  --accent-text: #1a4f94;
+  --accent-border: #3a7add;
+  --warn-bg: #faeeda;
+  --warn-text: #7a4a0a;
+  --teal-bg: #e0f5ee;
+  --teal-text: #0d5e46;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --font: 'Georgia', serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #191816;
+    --surface: #222120;
+    --surface-2: #2c2b28;
+    --border: rgba(255,255,255,0.09);
+    --border-md: rgba(255,255,255,0.16);
+    --border-strong: rgba(255,255,255,0.26);
+    --text: #f0ede6;
+    --text-2: #b0aea8;
+    --text-3: #70706a;
+    --accent-bg: #0d2d52;
+    --accent-text: #7ab3ee;
+    --accent-border: #3a7add;
+    --warn-bg: #3a2002;
+    --warn-text: #f0b060;
+    --teal-bg: #042e20;
+    --teal-text: #5dcaa5;
+  }
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.wrap { width: 100%; max-width: 620px; }
+
+.masthead { margin-bottom: 2rem; }
+.masthead h1 { font-family: var(--font); font-size: 22px; font-weight: normal; color: var(--text); letter-spacing: -0.01em; }
+.masthead .date { font-size: 13px; color: var(--text-3); margin-top: 3px; font-family: var(--font-ui); }
+
+.tab-bar { display: flex; gap: 0; margin-bottom: 2rem; border: 0.5px solid var(--border-md); border-radius: var(--radius); overflow: hidden; }
+.tab-bar button {
+  flex: 1; padding: 10px 8px; border: none; border-right: 0.5px solid var(--border);
+  background: var(--surface); font-size: 13px; color: var(--text-2);
+  cursor: pointer; font-family: var(--font-ui); transition: all 0.12s;
+}
+.tab-bar button:last-child { border-right: none; }
+.tab-bar button.active { background: var(--surface-2); color: var(--text); font-weight: 500; }
+
+.card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.25rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.field { margin-bottom: 1.25rem; }
+.field:last-child { margin-bottom: 0; }
+.label { font-size: 11px; color: var(--text-3); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 7px; font-family: var(--font-ui); }
+
+input[type="text"], textarea, select {
+  width: 100%; border: 0.5px solid var(--border-md);
+  border-radius: var(--radius); padding: 9px 11px;
+  font-size: 14px; font-family: var(--font-ui);
+  color: var(--text); background: var(--bg);
+  line-height: 1.55; appearance: none;
+}
+input[type="text"]:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent-border); }
+textarea { resize: none; }
+
+.two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+
+.stream-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
+.stream-btn {
+  padding: 9px 11px; border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  background: var(--surface); font-size: 12.5px;
+  color: var(--text-2); cursor: pointer;
+  font-family: var(--font-ui); text-align: left; transition: all 0.12s;
+  display: flex; align-items: center; gap: 7px;
+}
+.stream-btn .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.45; flex-shrink: 0; }
+.stream-btn.on { border-color: var(--accent-border); background: var(--accent-bg); color: var(--accent-text); }
+
+.pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  padding: 5px 11px; border-radius: 99px;
+  border: 0.5px solid var(--border);
+  background: var(--surface); font-size: 12px;
+  color: var(--text-2); cursor: pointer;
+  font-family: var(--font-ui); transition: all 0.12s;
+}
+.pill.on { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); font-weight: 500; }
+
+.custom-row { display: flex; gap: 7px; margin-top: 7px; }
+.custom-row input { flex: 1; }
+.mini-btn {
+  padding: 0 14px; border-radius: var(--radius);
+  border: 0.5px solid var(--border-md);
+  background: transparent; font-size: 13px;
+  color: var(--text-2); cursor: pointer;
+  font-family: var(--font-ui); white-space: nowrap;
+}
+.mini-btn:hover { background: var(--surface-2); }
+
+.energy-row { display: flex; gap: 7px; align-items: center; }
+.e-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 0.5px solid var(--border);
+  background: var(--surface-2); font-size: 15px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.e-btn.on { border: 2px solid var(--border-strong); background: var(--surface); }
+.e-label { font-size: 12px; color: var(--text-3); margin-left: 4px; }
+
+.save-btn {
+  width: 100%; padding: 11px; border-radius: var(--radius);
+  border: 0.5px solid var(--border-md); background: transparent;
+  font-size: 14px; font-weight: 500; color: var(--text);
+  cursor: pointer; font-family: var(--font-ui); transition: all 0.15s;
+  margin-top: 0.25rem;
+}
+.save-btn:hover { background: var(--surface-2); }
+
+.notice { font-size: 12px; color: var(--text-3); text-align: center; margin-top: 8px; opacity: 0; transition: opacity 0.3s; }
+.notice.show { opacity: 1; }
+
+.divider { border: none; border-top: 0.5px solid var(--border); margin: 1.25rem 0; }
+
+.prompt-box {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  background: var(--teal-bg);
+}
+.prompt-box .prompt-label { font-size: 11px; color: var(--teal-text); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 10px; font-family: var(--font-ui); font-weight: 500; }
+.prompt-toggle { display: flex; gap: 8px; }
+.prompt-toggle button {
+  flex: 1; padding: 9px; border-radius: var(--radius);
+  border: 0.5px solid rgba(0,0,0,0.12);
+  font-size: 13px; cursor: pointer; font-family: var(--font-ui);
+  background: var(--surface); color: var(--text-2); transition: all 0.12s;
+}
+.prompt-toggle button.on { background: var(--teal-bg); border-color: var(--teal-text); color: var(--teal-text); font-weight: 500; }
+
+.conv-form { margin-top: 1rem; display: none; }
+.conv-form.show { display: block; }
+
+.search-row { margin-bottom: 1rem; }
+.count { font-size: 12px; color: var(--text-3); margin-bottom: 1rem; }
+
+.person-card {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem; margin-bottom: 10px;
+  background: var(--surface);
+}
+.person-header { display: flex; align-items: center; gap: 11px; margin-bottom: 8px; }
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; color: var(--accent-text); flex-shrink: 0;
+}
+.person-name { font-size: 15px; font-weight: 500; color: var(--text); }
+.person-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.person-themes { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
+.theme-tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text-2); }
+.person-notes { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+.empty { font-size: 14px; color: var(--text-3); padding: 2.5rem 0; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <h1>Daily OS</h1>
+    <div class="date" id="dateDisplay"></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="active" onclick="showTab('morning')" id="t-morning">Morning</button>
+    <button onclick="showTab('evening')" id="t-evening">Evening</button>
+    <button onclick="showTab('people')" id="t-people">People</button>
+  </div>
+
+  <!-- MORNING -->
+  <div id="view-morning">
+    <div class="card">
+      <div class="field">
+        <div class="label">Streams alive today</div>
+        <div class="stream-grid" id="m-streams"></div>
+      </div>
+      <div class="field">
+        <div class="label">What am I here to do today?</div>
+        <textarea id="m-intention" rows="3" placeholder="One or two things that matter most..."></textarea>
+      </div>
+      <div class="field">
+        <div class="label">Energy entering the day</div>
+        <div class="energy-row">
+          <button class="e-btn" onclick="setEnergy('m',1)" id="me1">😔</button>
+          <button class="e-btn" onclick="setEnergy('m',2)" id="me2">😐</button>
+          <button class="e-btn" onclick="setEnergy('m',3)" id="me3">🙂</button>
+          <button class="e-btn" onclick="setEnergy('m',4)" id="me4">😊</button>
+          <button class="e-btn" onclick="setEnergy('m',5)" id="me5">✨</button>
+          <span class="e-label" id="m-elabel">how are you arriving?</span>
+        </div>
+      </div>
+      <button class="save-btn" onclick="saveMorning()">Save morning intention</button>
+      <div class="notice" id="m-notice">Saved</div>
+    </div>
+  </div>
+
+  <!-- EVENING -->
+  <div id="view-evening" style="display:none">
+    <div class="card">
+      <div class="field">
+        <div class="label">Streams that moved today</div>
+        <div class="stream-grid" id="e-streams"></div>
+      </div>
+      <div class="field">
+        <div class="label">What actually happened?</div>
+        <textarea id="e-reflection" rows="3" placeholder="Not just tasks — what moved, what didn't, what surprised you..."></textarea>
+      </div>
+      <div class="field">
+        <div class="label">Honest check: did I build, or avoid conversations?</div>
+        <textarea id="e-honest" rows="2" placeholder="No judgment — just notice..."></textarea>
+      </div>
+      <div class="field">
+        <div class="label">Energy leaving the day</div>
+        <div class="energy-row">
+          <button class="e-btn" onclick="setEnergy('e',1)" id="ee1">😔</button>
+          <button class="e-btn" onclick="setEnergy('e',2)" id="ee2">😐</button>
+          <button class="e-btn" onclick="setEnergy('e',3)" id="ee3">🙂</button>
+          <button class="e-btn" onclick="setEnergy('e',4)" id="ee4">😊</button>
+          <button class="e-btn" onclick="setEnergy('e',5)" id="ee5">✨</button>
+          <span class="e-label" id="e-elabel">how are you leaving?</span>
+        </div>
+      </div>
+      <button class="save-btn" onclick="saveEvening()">Save evening reflection</button>
+      <div class="notice" id="e-notice">Saved</div>
+    </div>
+
+    <div class="prompt-box" id="conv-prompt" style="display:none">
+      <div class="prompt-label">Did you meet anyone today worth logging?</div>
+      <div class="prompt-toggle">
+        <button id="conv-yes" onclick="toggleConvForm(true)">Yes — log a conversation</button>
+        <button id="conv-no" onclick="toggleConvForm(false)">Not today</button>
+      </div>
+      <div class="conv-form" id="conv-form">
+        <hr class="divider">
+        <div class="field two-col">
+          <div>
+            <div class="label">Name</div>
+            <input type="text" id="c-name" placeholder="Full name">
+          </div>
+          <div>
+            <div class="label">Where</div>
+            <select id="c-location">
+              <option value="">Select...</option>
+              <option>In person</option>
+              <option>Zoom / video</option>
+              <option>Phone</option>
+              <option>Coffee</option>
+              <option>Event</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <div class="label">How connected</div>
+          <select id="c-connection">
+            <option value="">Select...</option>
+            <option>New — just met</option>
+            <option>Warm — know each other</option>
+            <option>Close</option>
+            <option>Referral</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="label">Themes</div>
+          <div class="pill-row" id="c-themes"></div>
+          <div class="custom-row">
+            <input type="text" id="c-custom" placeholder="Add your own theme...">
+            <button class="mini-btn" onclick="addCustomTheme()">Add</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="label">Notes (optional)</div>
+          <textarea id="c-notes" rows="2" placeholder="What came up, what you noticed..."></textarea>
+        </div>
+        <button class="save-btn" onclick="saveConv()">Save conversation</button>
+        <div class="notice" id="c-notice">Saved</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PEOPLE -->
+  <div id="view-people" style="display:none">
+    <div class="search-row">
+      <input type="text" id="p-search" placeholder="Search by name..." oninput="renderPeople()">
+    </div>
+    <div class="count" id="p-count"></div>
+    <div id="p-list"></div>
+  </div>
+
+</div>
+
+<script>
+const STREAMS = [
+  {id:'coaching', label:'Coaching practice'},
+  {id:'program', label:'Program design'},
+  {id:'content', label:'Content & thought leadership'},
+  {id:'infra', label:'Practice infrastructure'},
+  {id:'schoolstack', label:'SchoolStack'},
+  {id:'nihonfamily', label:'NihonFamily'},
+];
+
+const DEFAULT_THEMES = ['Career transition','Leadership','Coaching','Parenting','Identity','Community','Japan / cross-cultural','Program design','Entrepreneurship','Self-authorship'];
+const ENERGY_LABELS = ['','drained','okay','steady','good','energized'];
+const ENERGY_EMOJI = ['','😔','😐','🙂','😊','✨'];
+
+let mStreams = [], eStreams = [], cThemes = [];
+let mEnergy = 0, eEnergy = 0;
+let customThemes = JSON.parse(localStorage.getItem('tm_cthemes') || '[]');
+let conversations = JSON.parse(localStorage.getItem('tm_convs') || '[]');
+
+function init() {
+  const now = new Date();
+  document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  renderStreamGrid('m-streams', mStreams, (id) => { toggle(mStreams, id); renderStreamGrid('m-streams', mStreams, arguments.callee); });
+  renderStreamGrid('e-streams', eStreams, (id) => { toggle(eStreams, id); renderStreamGrid('e-streams', eStreams, arguments.callee); });
+  renderThemePills();
+}
+
+function renderStreamGrid(elId, selected, cb) {
+  document.getElementById(elId).innerHTML = STREAMS.map(s => `
+    <button class="stream-btn ${selected.includes(s.id) ? 'on' : ''}" onclick="toggleStream('${elId}','${s.id}')">
+      <span class="dot"></span>${s.label}
+    </button>
+  `).join('');
+}
+
+function toggleStream(elId, id) {
+  const arr = elId === 'm-streams' ? mStreams : eStreams;
+  const i = arr.indexOf(id);
+  i === -1 ? arr.push(id) : arr.splice(i,1);
+  renderStreamGrid(elId, arr);
+}
+
+function setEnergy(prefix, n) {
+  if (prefix === 'm') { mEnergy = n; document.getElementById('m-elabel').textContent = ENERGY_LABELS[n]; }
+  else { eEnergy = n; document.getElementById('e-elabel').textContent = ENERGY_LABELS[n]; }
+  for (let i=1;i<=5;i++) document.getElementById(prefix+'e'+i).classList.toggle('on', i===n);
+}
+
+function toggle(arr, val) { const i=arr.indexOf(val); i===-1?arr.push(val):arr.splice(i,1); }
+
+function saveMorning() {
+  const entry = {
+    type:'morning', streams:[...mStreams],
+    intention: document.getElementById('m-intention').value.trim(),
+    energy: mEnergy, date: new Date().toISOString()
+  };
+  storeReflection(entry);
+  flash('m-notice');
+  document.getElementById('m-intention').value='';
+  mStreams=[]; mEnergy=0;
+  renderStreamGrid('m-streams', mStreams);
+  document.getElementById('m-elabel').textContent='how are you arriving?';
+  for(let i=1;i<=5;i++) document.getElementById('me'+i).classList.remove('on');
+}
+
+function saveEvening() {
+  const entry = {
+    type:'evening', streams:[...eStreams],
+    reflection: document.getElementById('e-reflection').value.trim(),
+    honest: document.getElementById('e-honest').value.trim(),
+    energy: eEnergy, date: new Date().toISOString()
+  };
+  storeReflection(entry);
+  flash('e-notice');
+  document.getElementById('conv-prompt').style.display='';
+}
+
+function storeReflection(entry) {
+  const all = JSON.parse(localStorage.getItem('tm_reflections') || '[]');
+  all.unshift(entry);
+  localStorage.setItem('tm_reflections', JSON.stringify(all));
+}
+
+function toggleConvForm(show) {
+  document.getElementById('conv-yes').classList.toggle('on', show);
+  document.getElementById('conv-no').classList.toggle('on', !show);
+  document.getElementById('conv-form').classList.toggle('show', show);
+}
+
+function renderThemePills() {
+  const all = [...DEFAULT_THEMES, ...customThemes];
+  document.getElementById('c-themes').innerHTML = all.map(t => `
+    <button class="pill ${cThemes.includes(t)?'on':''}" onclick="toggleTheme('${t.replace(/'/g,"\\'")}')">${t}</button>
+  `).join('');
+}
+
+function toggleTheme(t) { toggle(cThemes, t); renderThemePills(); }
+
+function addCustomTheme() {
+  const val = document.getElementById('c-custom').value.trim();
+  if(!val || [...DEFAULT_THEMES,...customThemes].includes(val)) return;
+  customThemes.push(val);
+  localStorage.setItem('tm_cthemes', JSON.stringify(customThemes));
+  document.getElementById('c-custom').value='';
+  renderThemePills();
+}
+
+function saveConv() {
+  const name = document.getElementById('c-name').value.trim();
+  if(!name) { document.getElementById('c-name').focus(); return; }
+  const conv = {
+    name,
+    date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    location: document.getElementById('c-location').value,
+    connection: document.getElementById('c-connection').value,
+    themes:[...cThemes],
+    notes: document.getElementById('c-notes').value.trim(),
+    saved: new Date().toISOString()
+  };
+  conversations.unshift(conv);
+  localStorage.setItem('tm_convs', JSON.stringify(conversations));
+  flash('c-notice');
+  document.getElementById('c-name').value='';
+  document.getElementById('c-location').value='';
+  document.getElementById('c-connection').value='';
+  document.getElementById('c-notes').value='';
+  cThemes=[];
+  renderThemePills();
+}
+
+function flash(id) {
+  const el = document.getElementById(id);
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2000);
+}
+
+function initials(name) { return name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase(); }
+
+function renderPeople() {
+  const q = (document.getElementById('p-search').value||'').toLowerCase();
+  const filtered = conversations.filter(c=>c.name.toLowerCase().includes(q));
+  document.getElementById('p-count').textContent = filtered.length + ' conversation' + (filtered.length!==1?'s':'');
+  if(!filtered.length) {
+    document.getElementById('p-list').innerHTML = '<div class="empty">No conversations logged yet.</div>';
+    return;
+  }
+  document.getElementById('p-list').innerHTML = filtered.map(c=>`
+    <div class="person-card">
+      <div class="person-header">
+        <div class="avatar">${initials(c.name)}</div>
+        <div>
+          <div class="person-name">${c.name}</div>
+          <div class="person-meta">${[c.date,c.location,c.connection].filter(Boolean).join(' · ')}</div>
+        </div>
+      </div>
+      ${c.themes.length?'<div class="person-themes">'+c.themes.map(t=>`<span class="theme-tag">${t}</span>`).join('')+'</div>':''}
+      ${c.notes?`<div class="person-notes">${c.notes}</div>`:''}
+    </div>
+  `).join('');
+}
+
+function showTab(tab) {
+  ['morning','evening','people'].forEach(t=>{
+    document.getElementById('view-'+t).style.display = t===tab?'':'none';
+    document.getElementById('t-'+t).classList.toggle('active', t===tab);
+  });
+  if(tab==='people') renderPeople();
+}
+
+init();
+</script>
+</body>
+</html>
