@@ -205,6 +205,19 @@ textarea { resize: none; }
 .theme-tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text-2); }
 .person-notes { font-size: 13px; color: var(--text-2); line-height: 1.6; }
 .empty { font-size: 14px; color: var(--text-3); padding: 2.5rem 0; text-align: center; }
+
+.milestone-card {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem; margin-bottom: 10px;
+  background: var(--surface);
+  border-left: 3px solid var(--accent-border);
+}
+.milestone-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.milestone-title { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.4; }
+.milestone-date { font-size: 11px; color: var(--text-3); white-space: nowrap; margin-left: 10px; flex-shrink: 0; }
+.milestone-stream { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--accent-bg); color: var(--accent-text); display: inline-block; margin-bottom: 7px; }
+.milestone-why { font-size: 13px; color: var(--text-2); line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -223,6 +236,7 @@ textarea { resize: none; }
     <button class="active" onclick="showTab('morning')" id="t-morning">Morning</button>
     <button onclick="showTab('evening')" id="t-evening">Evening</button>
     <button onclick="showTab('people')" id="t-people">People</button>
+    <button onclick="showTab('milestones')" id="t-milestones">Milestones</button>
   </div>
 
   <!-- MORNING -->
@@ -345,6 +359,44 @@ textarea { resize: none; }
     <div id="p-list"></div>
   </div>
 
+  <!-- MILESTONES -->
+  <div id="view-milestones" style="display:none">
+    <div class="card">
+      <div class="field two-col">
+        <div>
+          <div class="label">What happened?</div>
+          <input type="text" id="ms-title" placeholder="Name this milestone...">
+        </div>
+        <div>
+          <div class="label">Date</div>
+          <input type="text" id="ms-date" placeholder="e.g. Apr 21, 2026">
+        </div>
+      </div>
+      <div class="field">
+        <div class="label">Which stream</div>
+        <select id="ms-stream">
+          <option value="">Select...</option>
+          <option value="coaching">Coaching practice</option>
+          <option value="program">Program design</option>
+          <option value="content">Content & thought leadership</option>
+          <option value="infra">Practice infrastructure</option>
+          <option value="schoolstack">SchoolStack</option>
+          <option value="nihonfamily">NihonFamily</option>
+          <option value="general">General / cross-stream</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="label">Why does this matter?</div>
+        <textarea id="ms-why" rows="3" placeholder="What does this represent? What did it take to get here?"></textarea>
+      </div>
+      <button class="save-btn" onclick="saveMilestone()">Mark this milestone</button>
+      <div class="notice" id="ms-notice">Saved & synced to Google Sheets</div>
+    </div>
+
+    <div class="count" id="ms-count"></div>
+    <div id="ms-list"></div>
+  </div>
+
 </div>
 
 <script>
@@ -367,10 +419,12 @@ let mStreams = [], eStreams = [], cThemes = [];
 let mEnergy = 0, eEnergy = 0;
 let customThemes = JSON.parse(localStorage.getItem('tm_cthemes') || '[]');
 let conversations = JSON.parse(localStorage.getItem('tm_convs') || '[]');
+let milestones = JSON.parse(localStorage.getItem('tm_milestones') || '[]');
 
 function init() {
   const now = new Date();
   document.getElementById('dateDisplay').textContent = now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  document.getElementById('ms-date').value = now.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
   renderStreamGrid('m-streams', mStreams);
   renderStreamGrid('e-streams', eStreams);
   renderThemePills();
@@ -559,11 +613,72 @@ function renderPeople() {
 }
 
 function showTab(tab) {
-  ['morning','evening','people'].forEach(t=>{
+  ['morning','evening','people','milestones'].forEach(t=>{
     document.getElementById('view-'+t).style.display = t===tab?'':'none';
     document.getElementById('t-'+t).classList.toggle('active', t===tab);
   });
   if(tab==='people') renderPeople();
+  if(tab==='milestones') renderMilestones();
+}
+
+const STREAM_LABELS = {
+  coaching:'Coaching practice', program:'Program design',
+  content:'Content & thought leadership', infra:'Practice infrastructure',
+  schoolstack:'SchoolStack', nihonfamily:'NihonFamily', general:'General'
+};
+
+async function saveMilestone() {
+  const title = document.getElementById('ms-title').value.trim();
+  if(!title) { document.getElementById('ms-title').focus(); return; }
+  const milestone = {
+    title,
+    stream: document.getElementById('ms-stream').value,
+    why: document.getElementById('ms-why').value.trim(),
+    date: document.getElementById('ms-date').value.trim() || new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    saved: new Date().toISOString()
+  };
+  milestones.unshift(milestone);
+  localStorage.setItem('tm_milestones', JSON.stringify(milestones));
+
+  const sheetRow = {
+    type: 'milestone',
+    date: milestone.date,
+    streams: milestone.stream,
+    text: milestone.title,
+    honest: '',
+    energy: '',
+    name: '',
+    location: '',
+    connection: '',
+    themes: '',
+    notes: milestone.why
+  };
+  flash('ms-notice');
+  await syncToSheets(sheetRow);
+
+  document.getElementById('ms-title').value='';
+  document.getElementById('ms-stream').value='';
+  document.getElementById('ms-why').value='';
+  document.getElementById('ms-date').value = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  renderMilestones();
+}
+
+function renderMilestones() {
+  document.getElementById('ms-count').textContent = milestones.length + ' milestone' + (milestones.length!==1?'s':'');
+  if(!milestones.length) {
+    document.getElementById('ms-list').innerHTML = '<div class="empty">No milestones yet — log your first one.</div>';
+    return;
+  }
+  document.getElementById('ms-list').innerHTML = milestones.map(m=>`
+    <div class="milestone-card">
+      <div class="milestone-header">
+        <div class="milestone-title">${m.title}</div>
+        <div class="milestone-date">${m.date}</div>
+      </div>
+      ${m.stream ? `<div class="milestone-stream">${STREAM_LABELS[m.stream]||m.stream}</div>` : ''}
+      ${m.why ? `<div class="milestone-why">${m.why}</div>` : ''}
+    </div>
+  `).join('');
 }
 
 init();
